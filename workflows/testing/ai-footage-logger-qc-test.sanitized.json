@@ -1,0 +1,767 @@
+{
+    "name":  "AI Footage Logger — QC Test",
+    "description":  null,
+    "active":  false,
+    "isArchived":  false,
+    "nodes":  [
+                  {
+                      "parameters":  {
+                                         "pollTimes":  {
+                                                           "item":  [
+                                                                        {
+                                                                            "mode":  "everyMinute"
+                                                                        }
+                                                                    ]
+                                                       },
+                                         "triggerOn":  "specificFolder",
+                                         "folderToWatch":  {
+                                                               "__rl":  true,
+                                                               "value":  "REPLACE_WITH_YOUR_GOOGLE_DRIVE_FOLDER_ID",
+                                                               "mode":  "id",
+                                                               "cachedResultName":  "Proxy Intake (configure after import)"
+                                                           },
+                                         "event":  "fileCreated",
+                                         "options":  {
+                                                         "fileType":  "all"
+                                                     }
+                                     },
+                      "type":  "n8n-nodes-base.googleDriveTrigger",
+                      "typeVersion":  1,
+                      "position":  [
+                                       0,
+                                       0
+                                   ],
+                      "id":  "ac81108a-03b5-48f2-b665-e462df1556e6",
+                      "name":  "Google Drive Trigger",
+                      "credentials":  {
+                                          "googleDriveOAuth2Api":  {
+                                                                       "id":  "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+                                                                       "name":  "Reconnect after import"
+                                                                   }
+                                      }
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "download",
+                                         "fileId":  {
+                                                        "__rl":  true,
+                                                        "value":  "={{ $json.id }}",
+                                                        "mode":  "id"
+                                                    },
+                                         "options":  {
+                                                         "binaryPropertyName":  "data"
+                                                     }
+                                     },
+                      "type":  "n8n-nodes-base.googleDrive",
+                      "typeVersion":  3,
+                      "position":  [
+                                       416,
+                                       0
+                                   ],
+                      "id":  "67a54e90-10d5-46a5-88b0-cf4acd3d59e0",
+                      "name":  "Download file",
+                      "credentials":  {
+                                          "googleDriveOAuth2Api":  {
+                                                                       "id":  "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+                                                                       "name":  "Reconnect after import"
+                                                                   }
+                                      }
+                  },
+                  {
+                      "parameters":  {
+                                         "resource":  "video",
+                                         "operation":  "analyze",
+                                         "modelId":  {
+                                                         "__rl":  true,
+                                                         "value":  "models/gemini-3.1-flash-lite",
+                                                         "mode":  "list",
+                                                         "cachedResultName":  "models/gemini-3.1-flash-lite"
+                                                     },
+                                         "text":  "You are an AI footage logger assisting a professional video editor.\n\nAnalyze the entire video and create concise, accurate, searchable editorial metadata.\n\nReturn ONLY one valid JSON object. Do not include markdown, code fences, explanations, or text outside the JSON.\n\nUse timestamps relative to the beginning of the video in HH:MM:SS format.\n\nPRIMARY EDITORIAL PRINCIPLE\n\nA clip can contain recognizable people, actions, and understandable speech while still being a false start, camera test, accidental recording, setup moment, or unusable take.\n\nDo not confuse “content can be described” with “footage was intentionally recorded for editorial use.”\n\nBefore choosing a category, first determine whether the clip appears to be an intentional production take.\n\nPRODUCTION-INTENT CHECK\n\nLook for evidence that the recording is primarily:\n\n- a camera or framing test\n- a microphone or sound check\n- setup before the intended action\n- an accidental recording\n- an aborted attempt\n- an incomplete take\n- casual crew conversation\n- off-camera prompting that does not produce a complete interview answer\n- camera repositioning without a clear shot purpose\n- subjects waiting, preparing, looking for direction, or breaking the intended action\n- a very brief recording that stops before meaningful action develops\n- an abrupt or unexplained pan away from the apparent subject\n- footage captured before or after the intended performance\n\nStrong signs of an intentional take include:\n\n- deliberate framing\n- a coherent action, answer, performance, or scene\n- a clear editorial subject\n- sustained purposeful camera coverage\n- a complete or meaningfully usable section\n- dialogue or action that could reasonably appear in an edited program\n\nDo not label normal documentary imperfections as mistakes merely because footage is handheld, informal, quiet, or visually simple. Evaluate the combination of camera behavior, subject behavior, dialogue, duration, and apparent recording intent.\n\nFor clips shorter than 10 seconds, require a clear and complete editorial purpose. If the clip stops before an action, answer, or shot develops, classify it as false_start_or_mistake or needs_human_review.\n\nCLASSIFICATION\n\nClassify the overall clip using exactly one category:\n\n- interview\n- scene_dialogue\n- b_roll\n- performance_take\n- false_start_or_mistake\n- empty_or_unusable\n- mixed\n- needs_human_review\n\nCATEGORY DEFINITIONS\n\n- interview: A deliberate interview recording containing a sustained question response, testimony, or intentional direct-address answer. A casual question, test question, incomplete response, or off-camera setup exchange is not automatically an interview.\n- scene_dialogue: An intentional scene in which coherent dialogue or interaction carries the story or primary action. Understandable speech alone is not enough.\n- b_roll: Deliberate supplemental visual footage where dialogue is absent, incidental, or not the primary editorial purpose.\n- performance_take: A deliberate staged acting, presentation, demonstration, or performance attempt.\n- false_start_or_mistake: A recording primarily consisting of setup, testing, accidental capture, an aborted attempt, incomplete action, broken performance, camera error, unusable camera movement, or footage that clearly never becomes the intended take.\n- empty_or_unusable: A recording with no meaningful visual or spoken editorial content.\n- mixed: A clip containing materially different sections, including both clearly useful and problematic footage.\n- needs_human_review: The recording’s intent, usefulness, or category cannot be determined confidently.\n\nCRITICAL CLASSIFICATION RULES\n\n- Speech alone must never cause a clip to be classified as scene_dialogue.\n- A person answering a casual or test question does not automatically make the clip an interview.\n- A camera pan, reframe, or movement must have an apparent editorial purpose to be considered usable coverage.\n- If the clip is dominated by setup, testing, casual prompting, incomplete responses, arbitrary camera movement, or an abrupt ending, classify it as false_start_or_mistake.\n- When a recording clearly fails to become an intended take, set mistake_detected to true.\n- When the footage may be accidental or incomplete but intent is uncertain, set human_review_required to true.\n- Do not mark the entire clip usable merely because speech is understandable.\n- Do not infer personal relationships, occupations, names, or story context unless clearly established.\n- Do not invent dialogue, actions, objects, locations, or recording intent.\n\nDESCRIPTION RULES\n\n- content_summary: One concise sentence, maximum 15 words.\n- visual_description: One short phrase describing the main subject, action, and setting.\n- spoken_content_summary: One concise sentence describing the meaningful spoken content. Use an empty string when no meaningful dialogue exists.\n- Do not repeat the same information across fields.\n- Do not list minor clothing, props, or background objects unless useful for search.\n- searchable_keywords must contain approximately 5–15 useful visual or spoken search concepts.\n- visual_keywords must contain only visible subjects, actions, objects, settings, and shot characteristics.\n- spoken_terms must contain only words or short phrases clearly heard in the recording.\n- Never place inferred visual concepts inside spoken_terms.\n- Each spoken term must include the timestamp where it begins.\n\nMISTAKE DETECTION\n\nSet mistake_detected to true when the primary footage contains:\n\n- a false start or restart\n- an aborted take\n- an incomplete answer or action\n- obvious setup or testing\n- accidental recording\n- subjects breaking or waiting for direction\n- camera movement that abandons the apparent subject without clear purpose\n- an abrupt ending before the take develops\n- crew prompting or casual conversation that appears outside the intended content\n\nDescribe the evidence concisely in mistake_summary.\n\nUSABLE FOOTAGE\n\n“Usable” means footage an editor could intentionally include in a finished cut—not merely footage that can be seen or understood.\n\n- Always return usable_ranges.\n- If the entire clip is genuinely usable, return one range covering the clip.\n- If only part is useful, return only that section.\n- If nothing is editorially usable, return an empty array.\n- For false starts, setup footage, tests, and accidental recordings, normally return an empty usable_ranges array.\n- Do not create a usable range solely because dialogue is audible.\n- If usefulness is uncertain, set human_review_required to true.\n- Never use placeholder end times.\n\nSEGMENTS\n\nCreate separate segments only when the clip contains materially different actions, subjects, takes, or usefulness levels.\n\nEach segment_type must use exactly one of:\n\n- interview\n- scene_dialogue\n- b_roll\n- performance_take\n- false_start_or_mistake\n- empty_or_unusable\n- transition\n- unclear\n\nMark usable as false when the section is setup, accidental, incomplete, aborted, or clearly inappropriate for the finished edit.\n\nCONFIDENCE AND REVIEW\n\nconfidence_score represents confidence in the analysis—not the quality of the footage.\n\nA confidently identified mistake may have a high confidence score.\n\nSet human_review_required to true when:\n\n- the recording may be a mistake or accidental capture\n- production intent is uncertain\n- the category is uncertain\n- usable boundaries are unclear\n- dialogue is unreliable\n- a questionable section might still have editorial value\n- the clip contains both useful and unusable material\n- timestamps cannot be determined reliably\n\nReturn this exact JSON structure:\n\n{\n  \"overall_category\": \"\",\n  \"content_summary\": \"\",\n  \"visual_description\": \"\",\n  \"spoken_content_summary\": \"\",\n  \"searchable_keywords\": [],\n  \"visual_keywords\": [],\n  \"spoken_terms\": [\n    {\n      \"term\": \"\",\n      \"timestamp\": \"00:00:00\"\n    }\n  ],\n  \"people_or_subjects\": [],\n  \"locations_or_settings\": [],\n  \"mistake_detected\": false,\n  \"mistake_summary\": \"\",\n  \"empty_or_unusable\": false,\n  \"human_review_required\": false,\n  \"review_reason\": \"\",\n  \"confidence_score\": 0,\n  \"usable_ranges\": [\n    {\n      \"start_time\": \"00:00:00\",\n      \"end_time\": \"00:00:00\",\n      \"reason\": \"\"\n    }\n  ],\n  \"segments\": [\n    {\n      \"start_time\": \"00:00:00\",\n      \"end_time\": \"00:00:00\",\n      \"segment_type\": \"\",\n      \"summary\": \"\",\n      \"spoken_terms\": [],\n      \"visual_keywords\": [],\n      \"usable\": true,\n      \"issue\": \"\"\n    }\n  ]\n}\n\nReturn valid JSON only.",
+                                         "inputType":  "binary",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "type":  "@n8n/n8n-nodes-langchain.googleGemini",
+                      "typeVersion":  1.2,
+                      "position":  [
+                                       624,
+                                       0
+                                   ],
+                      "id":  "c059cdae-dec2-42cc-bcbc-82a77dd7477a",
+                      "name":  "Analyze video",
+                      "credentials":  {
+                                          "googlePalmApi":  {
+                                                                "id":  "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+                                                                "name":  "Reconnect after import"
+                                                            }
+                                      }
+                  },
+                  {
+                      "parameters":  {
+                                         "assignments":  {
+                                                             "assignments":  [
+                                                                                 {
+                                                                                     "id":  "e2fc3ce9-2e80-42fc-a020-3a50aeab4335",
+                                                                                     "name":  "analysis",
+                                                                                     "value":  "={{ $json.content.parts[0].text.parseJson() }}",
+                                                                                     "type":  "object"
+                                                                                 }
+                                                                             ]
+                                                         },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "type":  "n8n-nodes-base.set",
+                      "typeVersion":  3.4,
+                      "position":  [
+                                       832,
+                                       0
+                                   ],
+                      "id":  "d6ff51eb-4312-4421-82fd-38cc460e175e",
+                      "name":  "Edit Fields"
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "append",
+                                         "documentId":  {
+                                                            "__rl":  true,
+                                                            "value":  "REPLACE_WITH_YOUR_GOOGLE_SHEETS_DOCUMENT_ID",
+                                                            "mode":  "id",
+                                                            "cachedResultName":  "Clip Catalog (configure after import)"
+                                                        },
+                                         "sheetName":  {
+                                                           "__rl":  true,
+                                                           "value":  "REPLACE_WITH_YOUR_CLIP_CATALOG_TAB_ID",
+                                                           "mode":  "id",
+                                                           "cachedResultName":  "Clip Catalog"
+                                                       },
+                                         "columns":  {
+                                                         "mappingMode":  "defineBelow",
+                                                         "value":  {
+                                                                       "Clip Category":  "={{ $json.analysis.overall_category }}",
+                                                                       "Content Summary":  "={{ $json.analysis.content_summary }}",
+                                                                       "Visual Description":  "={{ $json.analysis.visual_description }}",
+                                                                       "Mis-Takes":  "={{ $json.analysis.mistake_detected }}",
+                                                                       "Potentially Usable Sections":  "={{ $json.analysis.usable_ranges.map(section =\u003e section.start_time + \u0027–\u0027 + section.end_time + \u0027: \u0027 + section.reason).join(\u0027; \u0027) }}",
+                                                                       "Confidence Score":  "={{ $json.analysis.confidence_score }}",
+                                                                       "Original Clip Name":  "={{ $(\u0027Google Drive Trigger\u0027).item.json.name\n  .replace(/_Proxy(?=\\.[^.]+$)/i, \u0027\u0027)\n  .replace(/\\.[^.]+$/, \u0027\u0027) }}",
+                                                                       "Proxy Clip Name":  "={{ $(\u0027Google Drive Trigger\u0027).item.json.name }}",
+                                                                       "Processing Status":  "={{ $json.validation.processing_status }}",
+                                                                       "Spoken Terms (Timecoded)":  "={{ $json.analysis.spoken_terms.map(item =\u003e item.term + \u0027 (\u0027 + item.timestamp + \u0027)\u0027).join(\u0027; \u0027) }}",
+                                                                       "Searchable Keywords":  "={{ $json.analysis.searchable_keywords.join(\u0027, \u0027) }}"
+                                                                   },
+                                                         "matchingColumns":  [
+
+                                                                             ],
+                                                         "schema":  [
+                                                                        {
+                                                                            "id":  "Original Clip Name",
+                                                                            "displayName":  "Original Clip Name",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "Proxy Clip Name",
+                                                                            "displayName":  "Proxy Clip Name",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "Clip Category",
+                                                                            "displayName":  "Clip Category",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "Content Summary",
+                                                                            "displayName":  "Content Summary",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "Visual Description",
+                                                                            "displayName":  "Visual Description",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "Spoken Terms (Timecoded)",
+                                                                            "displayName":  "Spoken Terms (Timecoded)",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true,
+                                                                            "removed":  false
+                                                                        },
+                                                                        {
+                                                                            "id":  "Searchable Keywords",
+                                                                            "displayName":  "Searchable Keywords",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true,
+                                                                            "removed":  false
+                                                                        },
+                                                                        {
+                                                                            "id":  "Mis-Takes",
+                                                                            "displayName":  "Mis-Takes",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "Potentially Usable Sections",
+                                                                            "displayName":  "Potentially Usable Sections",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "Confidence Score",
+                                                                            "displayName":  "Confidence Score",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "Processing Status",
+                                                                            "displayName":  "Processing Status",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "Error",
+                                                                            "displayName":  "Error",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        }
+                                                                    ],
+                                                         "attemptToConvertTypes":  false,
+                                                         "convertFieldsToString":  false
+                                                     },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "type":  "n8n-nodes-base.googleSheets",
+                      "typeVersion":  4.7,
+                      "position":  [
+                                       1648,
+                                       -272
+                                   ],
+                      "id":  "e939e2fb-17bd-4934-9179-a9432466d228",
+                      "name":  "Append row in sheet",
+                      "credentials":  {
+                                          "googleSheetsOAuth2Api":  {
+                                                                        "id":  "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+                                                                        "name":  "Reconnect after import"
+                                                                    }
+                                      }
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "append",
+                                         "documentId":  {
+                                                            "__rl":  true,
+                                                            "value":  "REPLACE_WITH_YOUR_GOOGLE_SHEETS_DOCUMENT_ID",
+                                                            "mode":  "id",
+                                                            "cachedResultName":  "Clip Catalog (configure after import)"
+                                                        },
+                                         "sheetName":  {
+                                                           "__rl":  true,
+                                                           "value":  "REPLACE_WITH_YOUR_REVIEW_QUEUE_TAB_ID",
+                                                           "mode":  "id",
+                                                           "cachedResultName":  "Review Queue"
+                                                       },
+                                         "columns":  {
+                                                         "mappingMode":  "defineBelow",
+                                                         "value":  {
+                                                                       "Original Clip Name":  "={{ $(\u0027Google Drive Trigger\u0027).item.json.name.replace(/_Proxy(?=\\.[^.]+$)/i, \u0027\u0027).replace(/\\.[^.]+$/, \u0027\u0027) }}",
+                                                                       "Proxy Clip Name":  "={{ $(\u0027Google Drive Trigger\u0027).item.json.name }}",
+                                                                       "Clip Category":  "={{ $json.analysis.overall_category }}",
+                                                                       "Content Summary":  "={{ $json.analysis.content_summary }}",
+                                                                       "Review Reason":  "={{ $json.validation.review_reason_text }}",
+                                                                       "Confidence Score":  "={{ $json.analysis.confidence_score }}",
+                                                                       "Potentially Usable Sections":  "={{ $json.analysis.usable_ranges.map(section =\u003e section.start_time + \u0027–\u0027 + section.end_time + \u0027: \u0027 + section.reason).join(\u0027; \u0027) }}",
+                                                                       "Review Status":  "Pending"
+                                                                   },
+                                                         "matchingColumns":  [
+
+                                                                             ],
+                                                         "schema":  [
+                                                                        {
+                                                                            "id":  "Original Clip Name",
+                                                                            "displayName":  "Original Clip Name",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "Proxy Clip Name",
+                                                                            "displayName":  "Proxy Clip Name",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "Clip Category",
+                                                                            "displayName":  "Clip Category",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "Content Summary",
+                                                                            "displayName":  "Content Summary",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "Review Reason",
+                                                                            "displayName":  "Review Reason",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "Confidence Score",
+                                                                            "displayName":  "Confidence Score",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "Potentially Usable Sections",
+                                                                            "displayName":  "Potentially Usable Sections",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "Review Status",
+                                                                            "displayName":  "Review Status",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "Reviewer Notes",
+                                                                            "displayName":  "Reviewer Notes",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        }
+                                                                    ],
+                                                         "attemptToConvertTypes":  false,
+                                                         "convertFieldsToString":  false
+                                                     },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "type":  "n8n-nodes-base.googleSheets",
+                      "typeVersion":  4.7,
+                      "position":  [
+                                       1888,
+                                       -128
+                                   ],
+                      "id":  "44b7a7d9-7817-486b-9b88-3cd62f3a9ac4",
+                      "name":  "Append row in sheet1",
+                      "credentials":  {
+                                          "googleSheetsOAuth2Api":  {
+                                                                        "id":  "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+                                                                        "name":  "Reconnect after import"
+                                                                    }
+                                      }
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "append",
+                                         "documentId":  {
+                                                            "__rl":  true,
+                                                            "value":  "REPLACE_WITH_YOUR_GOOGLE_SHEETS_DOCUMENT_ID",
+                                                            "mode":  "id",
+                                                            "cachedResultName":  "Clip Catalog (configure after import)"
+                                                        },
+                                         "sheetName":  {
+                                                           "__rl":  true,
+                                                           "value":  "REPLACE_WITH_YOUR_ERROR_LOG_TAB_ID",
+                                                           "mode":  "id",
+                                                           "cachedResultName":  "Error Log"
+                                                       },
+                                         "columns":  {
+                                                         "mappingMode":  "defineBelow",
+                                                         "value":  {
+                                                                       "Timestamp":  "={{ $now.toISO() }}",
+                                                                       "Workflow":  "AI Footage Logger",
+                                                                       "Proxy Clip Name":  "={{ $(\u0027Google Drive Trigger\u0027).item.json.name }}",
+                                                                       "Failed Stage":  "AI Output Validation",
+                                                                       "Error Message":  "={{ $json.validation.errors.join(\u0027; \u0027) }}",
+                                                                       "Status":  "Open"
+                                                                   },
+                                                         "matchingColumns":  [
+
+                                                                             ],
+                                                         "schema":  [
+                                                                        {
+                                                                            "id":  "Timestamp",
+                                                                            "displayName":  "Timestamp",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "Workflow",
+                                                                            "displayName":  "Workflow",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "Proxy Clip Name",
+                                                                            "displayName":  "Proxy Clip Name",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "Failed Stage",
+                                                                            "displayName":  "Failed Stage",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "Error Message",
+                                                                            "displayName":  "Error Message",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "Execution URL",
+                                                                            "displayName":  "Execution URL",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "Status",
+                                                                            "displayName":  "Status",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        }
+                                                                    ],
+                                                         "attemptToConvertTypes":  false,
+                                                         "convertFieldsToString":  false
+                                                     },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "type":  "n8n-nodes-base.googleSheets",
+                      "typeVersion":  4.7,
+                      "position":  [
+                                       1664,
+                                       160
+                                   ],
+                      "id":  "7257e793-777a-40f2-8e6d-902f6bb1ec90",
+                      "name":  "Append row in sheet2",
+                      "credentials":  {
+                                          "googleSheetsOAuth2Api":  {
+                                                                        "id":  "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+                                                                        "name":  "Reconnect after import"
+                                                                    }
+                                      }
+                  },
+                  {
+                      "parameters":  {
+                                         "mode":  "runOnceForEachItem",
+                                         "jsCode":  "const analysis = $json.analysis;\n\nconst errors = [];\nconst reviewReasons = [];\n\nconst allowedCategories = new Set([\n  \u0027interview\u0027,\n  \u0027scene_dialogue\u0027,\n  \u0027b_roll\u0027,\n  \u0027performance_take\u0027,\n  \u0027false_start_or_mistake\u0027,\n  \u0027empty_or_unusable\u0027,\n  \u0027mixed\u0027,\n  \u0027needs_human_review\u0027,\n]);\n\nconst timePattern = /^\\d{2}:[0-5]\\d:[0-5]\\d$/;\n\nfunction addReviewReason(reason) {\n  if (reason \u0026\u0026 !reviewReasons.includes(reason)) {\n    reviewReasons.push(reason);\n  }\n}\n\nif (!analysis || typeof analysis !== \u0027object\u0027 || Array.isArray(analysis)) {\n  errors.push(\u0027Missing or invalid analysis object\u0027);\n} else {\n  // Normalize common confidence-score formats.\n  // Examples: 0.9 becomes 90, \"0.9\" becomes 90, and 87.6 becomes 88.\n  if (\n    typeof analysis.confidence_score === \u0027string\u0027 \u0026\u0026\n    analysis.confidence_score.trim() !== \u0027\u0027 \u0026\u0026\n    Number.isFinite(Number(analysis.confidence_score))\n  ) {\n    analysis.confidence_score = Number(analysis.confidence_score);\n  }\n\n  if (\n    typeof analysis.confidence_score === \u0027number\u0027 \u0026\u0026\n    Number.isFinite(analysis.confidence_score)\n  ) {\n    if (\n      analysis.confidence_score \u003e 0 \u0026\u0026\n      analysis.confidence_score \u003c= 1\n    ) {\n      analysis.confidence_score = Math.round(\n        analysis.confidence_score * 100\n      );\n    } else {\n      analysis.confidence_score = Math.round(\n        analysis.confidence_score\n      );\n    }\n  }\n\n  // Required non-empty text fields\n  for (const field of [\n    \u0027overall_category\u0027,\n    \u0027content_summary\u0027,\n    \u0027visual_description\u0027,\n  ]) {\n    if (\n      typeof analysis[field] !== \u0027string\u0027 ||\n      analysis[field].trim() === \u0027\u0027\n    ) {\n      errors.push(`${field} is missing or empty`);\n    }\n  }\n\n  // Required fields that may contain an empty string\n  for (const field of [\n    \u0027spoken_content_summary\u0027,\n    \u0027mistake_summary\u0027,\n    \u0027review_reason\u0027,\n  ]) {\n    if (typeof analysis[field] !== \u0027string\u0027) {\n      errors.push(`${field} must be text`);\n    }\n  }\n\n  // Validate category\n  if (!allowedCategories.has(analysis.overall_category)) {\n    errors.push(\u0027overall_category contains an unsupported value\u0027);\n  }\n\n  // Required arrays\n  for (const field of [\n    \u0027searchable_keywords\u0027,\n    \u0027visual_keywords\u0027,\n    \u0027spoken_terms\u0027,\n    \u0027people_or_subjects\u0027,\n    \u0027locations_or_settings\u0027,\n    \u0027usable_ranges\u0027,\n    \u0027segments\u0027,\n  ]) {\n    if (!Array.isArray(analysis[field])) {\n      errors.push(`${field} must be an array`);\n    }\n  }\n\n  // Required true/false fields\n  for (const field of [\n    \u0027mistake_detected\u0027,\n    \u0027empty_or_unusable\u0027,\n    \u0027human_review_required\u0027,\n  ]) {\n    if (typeof analysis[field] !== \u0027boolean\u0027) {\n      errors.push(`${field} must be true or false`);\n    }\n  }\n\n  // Validate normalized confidence score\n  if (\n    !Number.isInteger(analysis.confidence_score) ||\n    analysis.confidence_score \u003c 0 ||\n    analysis.confidence_score \u003e 100\n  ) {\n    errors.push(\n      \u0027confidence_score must be a whole number from 0 to 100\u0027\n    );\n  }\n\n  // Validate spoken terms\n  if (Array.isArray(analysis.spoken_terms)) {\n    analysis.spoken_terms.forEach((item, index) =\u003e {\n      if (\n        !item ||\n        typeof item.term !== \u0027string\u0027 ||\n        item.term.trim() === \u0027\u0027\n      ) {\n        errors.push(`spoken_terms[${index}] has no valid term`);\n      }\n\n      if (\n        !item ||\n        typeof item.timestamp !== \u0027string\u0027 ||\n        !timePattern.test(item.timestamp)\n      ) {\n        errors.push(\n          `spoken_terms[${index}] has an invalid timestamp`\n        );\n      }\n    });\n  }\n\n  // Validate usable ranges\n  if (Array.isArray(analysis.usable_ranges)) {\n    analysis.usable_ranges.forEach((range, index) =\u003e {\n      if (\n        !range ||\n        typeof range.start_time !== \u0027string\u0027 ||\n        !timePattern.test(range.start_time)\n      ) {\n        errors.push(\n          `usable_ranges[${index}] has an invalid start time`\n        );\n      }\n\n      if (\n        !range ||\n        typeof range.end_time !== \u0027string\u0027 ||\n        !timePattern.test(range.end_time) ||\n        range.end_time === \u002700:00:00\u0027\n      ) {\n        errors.push(\n          `usable_ranges[${index}] has an invalid end time`\n        );\n      }\n\n      if (\n        !range ||\n        typeof range.reason !== \u0027string\u0027 ||\n        range.reason.trim() === \u0027\u0027\n      ) {\n        errors.push(`usable_ranges[${index}] has no reason`);\n      }\n    });\n  }\n\n  // Human-review rules\n  if (analysis.human_review_required === true) {\n    addReviewReason(\n      analysis.review_reason || \u0027The AI requested human review\u0027\n    );\n  }\n\n  if (\n    Number.isInteger(analysis.confidence_score) \u0026\u0026\n    analysis.confidence_score \u003c 80\n  ) {\n    addReviewReason(\n      `Low confidence score: ${analysis.confidence_score}`\n    );\n  }\n\n  if (analysis.overall_category === \u0027mixed\u0027) {\n    addReviewReason(\u0027The clip contains mixed footage types\u0027);\n  }\n\n  if (analysis.overall_category === \u0027needs_human_review\u0027) {\n    addReviewReason(\u0027The clip could not be classified confidently\u0027);\n  }\n\n  if (analysis.overall_category === \u0027false_start_or_mistake\u0027) {\n    addReviewReason(\u0027The clip is primarily a false start or mistake\u0027);\n  }\n\n  if (analysis.mistake_detected === true) {\n    addReviewReason(\n      analysis.mistake_summary || \u0027A possible mistake was detected\u0027\n    );\n  }\n\n  if (\n    analysis.empty_or_unusable === true ||\n    analysis.overall_category === \u0027empty_or_unusable\u0027\n  ) {\n    addReviewReason(\n      \u0027The clip may be empty or unusable and requires confirmation\u0027\n    );\n  }\n\n  if (\n    Array.isArray(analysis.usable_ranges) \u0026\u0026\n    analysis.usable_ranges.length === 0\n  ) {\n    addReviewReason(\u0027No usable footage range was identified\u0027);\n  }\n}\n\nconst valid = errors.length === 0;\nconst needsReview = !valid || reviewReasons.length \u003e 0;\n\nlet processingStatus = \u0027Complete\u0027;\n\nif (!valid) {\n  processingStatus = \u0027Processing Error\u0027;\n} else if (needsReview) {\n  processingStatus = \u0027Needs Review\u0027;\n}\n\nconst reviewReasonText = !valid\n  ? `Validation failed: ${errors.join(\u0027; \u0027)}`\n  : reviewReasons.join(\u0027; \u0027);\n\nreturn {\n  json: {\n    ...$json,\n    validation: {\n      valid,\n      errors,\n      needs_review: needsReview,\n      review_reasons: reviewReasons,\n      review_reason_text: reviewReasonText,\n      processing_status: processingStatus,\n    },\n  },\n};"
+                                     },
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1248,
+                                       0
+                                   ],
+                      "id":  "39edbec7-bb38-4f5c-842f-f928a037ef08",
+                      "name":  "Validate AI Analysis"
+                  },
+                  {
+                      "parameters":  {
+                                         "conditions":  {
+                                                            "options":  {
+                                                                            "caseSensitive":  true,
+                                                                            "leftValue":  "",
+                                                                            "typeValidation":  "strict",
+                                                                            "version":  3
+                                                                        },
+                                                            "conditions":  [
+                                                                               {
+                                                                                   "id":  "1f31dcdb-c359-4f34-a0ab-784d899c1f23",
+                                                                                   "leftValue":  "={{ $json.validation.valid }}",
+                                                                                   "rightValue":  "True",
+                                                                                   "operator":  {
+                                                                                                    "type":  "boolean",
+                                                                                                    "operation":  "true",
+                                                                                                    "singleValue":  true
+                                                                                                }
+                                                                               }
+                                                                           ],
+                                                            "combinator":  "and"
+                                                        },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "type":  "n8n-nodes-base.if",
+                      "typeVersion":  2.3,
+                      "position":  [
+                                       1456,
+                                       0
+                                   ],
+                      "id":  "468de26c-b0cd-4145-bc2a-6a610546cd2f",
+                      "name":  "Validation Passed?"
+                  },
+                  {
+                      "parameters":  {
+                                         "conditions":  {
+                                                            "options":  {
+                                                                            "caseSensitive":  true,
+                                                                            "leftValue":  "",
+                                                                            "typeValidation":  "strict",
+                                                                            "version":  3
+                                                                        },
+                                                            "conditions":  [
+                                                                               {
+                                                                                   "id":  "93aa7375-66e4-4ccf-b4d2-afb0dba7d174",
+                                                                                   "leftValue":  "={{ $json.validation.needs_review }}",
+                                                                                   "rightValue":  "",
+                                                                                   "operator":  {
+                                                                                                    "type":  "boolean",
+                                                                                                    "operation":  "true",
+                                                                                                    "singleValue":  true
+                                                                                                }
+                                                                               }
+                                                                           ],
+                                                            "combinator":  "and"
+                                                        },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "type":  "n8n-nodes-base.if",
+                      "typeVersion":  2.3,
+                      "position":  [
+                                       1664,
+                                       -48
+                                   ],
+                      "id":  "62802c48-c11d-4ab1-a5bd-61e448252f4d",
+                      "name":  "Human Review Required?"
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "removeItemsSeenInPreviousExecutions",
+                                         "dedupeValue":  "={{ $json.id }}",
+                                         "options":  {
+                                                         "scope":  "node",
+                                                         "historySize":  10000
+                                                     }
+                                     },
+                      "type":  "n8n-nodes-base.removeDuplicates",
+                      "typeVersion":  2,
+                      "position":  [
+                                       208,
+                                       0
+                                   ],
+                      "id":  "b6a18b50-5f55-4a07-ae27-cd7d61e63cf9",
+                      "name":  "Remove Duplicates"
+                  }
+              ],
+    "connections":  {
+                        "Google Drive Trigger":  {
+                                                     "main":  [
+                                                                  [
+                                                                      {
+                                                                          "node":  "Remove Duplicates",
+                                                                          "type":  "main",
+                                                                          "index":  0
+                                                                      }
+                                                                  ]
+                                                              ]
+                                                 },
+                        "Download file":  {
+                                              "main":  [
+                                                           [
+                                                               {
+                                                                   "node":  "Analyze video",
+                                                                   "type":  "main",
+                                                                   "index":  0
+                                                               }
+                                                           ]
+                                                       ]
+                                          },
+                        "Analyze video":  {
+                                              "main":  [
+                                                           [
+                                                               {
+                                                                   "node":  "Edit Fields",
+                                                                   "type":  "main",
+                                                                   "index":  0
+                                                               }
+                                                           ]
+                                                       ]
+                                          },
+                        "Edit Fields":  {
+                                            "main":  [
+                                                         [
+                                                             {
+                                                                 "node":  "Validate AI Analysis",
+                                                                 "type":  "main",
+                                                                 "index":  0
+                                                             }
+                                                         ]
+                                                     ]
+                                        },
+                        "Append row in sheet1":  {
+                                                     "main":  [
+                                                                  [
+
+                                                                  ]
+                                                              ]
+                                                 },
+                        "Validate AI Analysis":  {
+                                                     "main":  [
+                                                                  [
+                                                                      {
+                                                                          "node":  "Validation Passed?",
+                                                                          "type":  "main",
+                                                                          "index":  0
+                                                                      }
+                                                                  ]
+                                                              ]
+                                                 },
+                        "Validation Passed?":  {
+                                                   "main":  [
+                                                                [
+                                                                    {
+                                                                        "node":  "Append row in sheet",
+                                                                        "type":  "main",
+                                                                        "index":  0
+                                                                    },
+                                                                    {
+                                                                        "node":  "Human Review Required?",
+                                                                        "type":  "main",
+                                                                        "index":  0
+                                                                    }
+                                                                ],
+                                                                [
+                                                                    {
+                                                                        "node":  "Append row in sheet2",
+                                                                        "type":  "main",
+                                                                        "index":  0
+                                                                    }
+                                                                ]
+                                                            ]
+                                               },
+                        "Human Review Required?":  {
+                                                       "main":  [
+                                                                    [
+                                                                        {
+                                                                            "node":  "Append row in sheet1",
+                                                                            "type":  "main",
+                                                                            "index":  0
+                                                                        }
+                                                                    ]
+                                                                ]
+                                                   },
+                        "Remove Duplicates":  {
+                                                  "main":  [
+                                                               [
+                                                                   {
+                                                                       "node":  "Download file",
+                                                                       "type":  "main",
+                                                                       "index":  0
+                                                                   }
+                                                               ]
+                                                           ]
+                                              }
+                    },
+    "settings":  {
+                     "executionOrder":  "v1",
+                     "binaryMode":  "separate",
+                     "availableInMCP":  false
+                 },
+    "tags":  [
+
+             ]
+}
+
+

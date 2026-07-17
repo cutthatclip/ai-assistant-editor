@@ -1,0 +1,248 @@
+{
+    "name":  "Footage Search Assistant",
+    "description":  null,
+    "active":  false,
+    "isArchived":  false,
+    "nodes":  [
+                  {
+                      "parameters":  {
+                                         "documentId":  {
+                                                            "__rl":  true,
+                                                            "value":  "REPLACE_WITH_YOUR_GOOGLE_SHEETS_DOCUMENT_ID",
+                                                            "mode":  "id",
+                                                            "cachedResultName":  "Clip Catalog (configure after import)"
+                                                        },
+                                         "sheetName":  {
+                                                           "__rl":  true,
+                                                           "value":  "REPLACE_WITH_YOUR_CLIP_CATALOG_TAB_ID",
+                                                           "mode":  "id",
+                                                           "cachedResultName":  "Clip Catalog"
+                                                       },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "type":  "n8n-nodes-base.googleSheets",
+                      "typeVersion":  4.7,
+                      "position":  [
+                                       208,
+                                       0
+                                   ],
+                      "id":  "f7774f72-8dc2-4e42-afd6-76330afb2cf7",
+                      "name":  "Get row(s) in sheet",
+                      "credentials":  {
+                                          "googleSheetsOAuth2Api":  {
+                                                                        "id":  "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+                                                                        "name":  "Reconnect after import"
+                                                                    }
+                                      }
+                  },
+                  {
+                      "parameters":  {
+                                         "formTitle":  "Search Footage Catalog",
+                                         "formDescription":  "Describe the footage, subject, action, or spoken words you need.",
+                                         "formFields":  {
+                                                            "values":  [
+                                                                           {
+                                                                               "fieldLabel":  "What footage are you looking for?",
+                                                                               "requiredField":  true
+                                                                           }
+                                                                       ]
+                                                        },
+                                         "responseMode":  "lastNode",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "type":  "n8n-nodes-base.formTrigger",
+                      "typeVersion":  2.6,
+                      "position":  [
+                                       0,
+                                       0
+                                   ],
+                      "id":  "774ddaed-f24e-4d63-bf9a-eb2c41e57f9d",
+                      "name":  "Search Form"
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "const searchQuery =\n  $(\u0027Search Form\u0027).first().json[\u0027What footage are you looking for?\u0027];\n\nconst clipMap = new Map();\n\nfor (const item of $input.all()) {\n  const row = item.json;\n\n  const clip = {\n    original_clip_name: row[\u0027Original Clip Name\u0027],\n    proxy_clip_name: row[\u0027Proxy Clip Name\u0027],\n    category: row[\u0027Clip Category\u0027],\n    content_summary: row[\u0027Content Summary\u0027],\n    visual_description: row[\u0027Visual Description\u0027],\n    spoken_terms: row[\u0027Spoken Terms (Timecoded)\u0027],\n    searchable_keywords: row[\u0027Searchable Keywords\u0027],\n    usable_sections: row[\u0027Potentially Usable Sections\u0027],\n    confidence_score: row[\u0027Confidence Score\u0027],\n    processing_status: row[\u0027Processing Status\u0027],\n  };\n\n  const uniqueKey =\n    clip.proxy_clip_name ||\n    clip.original_clip_name ||\n    `row-${row.row_number}`;\n\n  clipMap.set(uniqueKey, clip);\n}\n\nreturn [\n  {\n    json: {\n      search_query: searchQuery,\n      clips: Array.from(clipMap.values()),\n    },\n  },\n];"
+                                     },
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       416,
+                                       0
+                                   ],
+                      "id":  "d7fcf414-953d-4b9f-b8c0-7d5fa9f2d947",
+                      "name":  "Build Search Catalog"
+                  },
+                  {
+                      "parameters":  {
+                                         "modelId":  {
+                                                         "__rl":  true,
+                                                         "value":  "models/gemini-3.1-flash-lite",
+                                                         "mode":  "list",
+                                                         "cachedResultName":  "models/gemini-3.1-flash-lite"
+                                                     },
+                                         "messages":  {
+                                                          "values":  [
+                                                                         {
+                                                                             "content":  "=You are an AI footage search assistant for a professional video editor.\n\nSearch the provided footage catalog for clips that best match the editor\u0027s natural-language request.\n\nEvaluate every clip using:\n\n- content_summary\n- visual_description\n- searchable_keywords\n- spoken_terms\n- usable_sections\n- category\n- processing_status\n\nSEARCH RULES\n\n1. Understand the editor\u0027s intent, not only exact keyword matches.\n2. A visual match means the requested subject, object, action, or setting appears in the footage.\n3. A spoken match means the requested word or phrase is clearly listed in spoken_terms.\n4. Do not claim something was spoken when it appears only in the visual description or searchable keywords.\n5. Prefer clips matching several parts of the request.\n6. Return no more than five matches.\n7. Include only matches with a relevance_score of 60 or higher.\n8. Rank matches from highest to lowest relevance.\n9. Each proxy file may appear only once.\n10. Copy filenames, categories, statuses, and timecodes exactly from the catalog.\n11. For an exact spoken match, use its spoken timestamp when available.\n12. Otherwise, use the most relevant usable section or timecoded range.\n13. If no supported timecode exists, return an empty string.\n14. Do not invent footage, dialogue, filenames, metadata, or timecodes.\n15. Exclude clips whose processing_status is \"Processing Error\".\n16. A clip marked \"Needs Review\" may be returned, but its warning must say \"Needs human review\".\n17. If no clip scores at least 60, return an empty matches array and set no_match to true.\n\nReturn ONLY one valid JSON object. Do not include markdown, code fences, explanations, or text outside the JSON.\n\nReturn this exact structure:\n\n{\n  \"search_query\": \"\",\n  \"no_match\": false,\n  \"result_count\": 0,\n  \"matches\": [\n    {\n      \"rank\": 1,\n      \"original_clip_name\": \"\",\n      \"proxy_clip_name\": \"\",\n      \"category\": \"\",\n      \"relevance_score\": 0,\n      \"matching_timecode\": \"\",\n      \"matched_by\": [],\n      \"match_reason\": \"\",\n      \"processing_status\": \"\",\n      \"warning\": \"\"\n    }\n  ],\n  \"message\": \"\"\n}\n\nAdditional output rules:\n\n- relevance_score must be a whole number from 0 to 100.\n- matched_by may contain only:\n  - content_summary\n  - visual_description\n  - searchable_keywords\n  - spoken_terms\n  - usable_sections\n- match_reason must be one concise sentence explaining why the footage matches.\n- result_count must equal the number of returned matches.\n- If matches are returned, set no_match to false and message to an empty string.\n- If no matches are returned, set no_match to true, result_count to 0, and message to \"No relevant footage was found.\"\n\nEDITOR SEARCH REQUEST:\n\n{{ $json.search_query }}\n\nFOOTAGE CATALOG:\n\n{{ JSON.stringify($json.clips) }}"
+                                                                         }
+                                                                     ]
+                                                      },
+                                         "builtInTools":  {
+
+                                                          },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "type":  "@n8n/n8n-nodes-langchain.googleGemini",
+                      "typeVersion":  1.2,
+                      "position":  [
+                                       624,
+                                       0
+                                   ],
+                      "id":  "7248b7f1-7da8-48c9-87b4-6f5a88d2aa40",
+                      "name":  "Search Footage with AI",
+                      "credentials":  {
+                                          "googlePalmApi":  {
+                                                                "id":  "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+                                                                "name":  "Reconnect after import"
+                                                            }
+                                      }
+                  },
+                  {
+                      "parameters":  {
+                                         "assignments":  {
+                                                             "assignments":  [
+                                                                                 {
+                                                                                     "id":  "8091d0bb-d220-4f10-b652-5a25033d795c",
+                                                                                     "name":  "search_results",
+                                                                                     "value":  "={{ $json.content.parts[0].text.parseJson() }}",
+                                                                                     "type":  "object"
+                                                                                 }
+                                                                             ]
+                                                         },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "type":  "n8n-nodes-base.set",
+                      "typeVersion":  3.4,
+                      "position":  [
+                                       976,
+                                       0
+                                   ],
+                      "id":  "0ca82b2b-942a-4e32-8a77-f4e4e2923b46",
+                      "name":  "Parse Search Results"
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "const input = $input.first().json;\nconst results = input.search_results || {};\n\nconst matches = Array.isArray(results.matches)\n  ? results.matches\n  : [];\n\nfunction escapeHtml(value = \u0027\u0027) {\n  return String(value).replace(/[\u0026\u003c\u003e\"\u0027]/g, character =\u003e ({\n    \u0027\u0026\u0027: \u0027\u0026amp;\u0027,\n    \u0027\u003c\u0027: \u0027\u0026lt;\u0027,\n    \u0027\u003e\u0027: \u0027\u0026gt;\u0027,\n    \u0027\"\u0027: \u0027\u0026quot;\u0027,\n    \"\u0027\": \u0027\u0026#039;\u0027,\n  })[character]);\n}\n\nlet resultHtml;\n\nif (results.no_match || matches.length === 0) {\n  resultHtml = `\n    \u003cdiv style=\"max-width:800px;margin:0 auto;font-family:Arial,sans-serif;\"\u003e\n      \u003ch2\u003eNo Relevant Footage Found\u003c/h2\u003e\n      \u003cp\u003e\n        No cataloged footage matched\n        \u003cstrong\u003e${escapeHtml(results.search_query)}\u003c/strong\u003e.\n      \u003c/p\u003e\n    \u003c/div\u003e\n  `;\n} else {\n  const matchCards = matches.map(match =\u003e {\n    const category = escapeHtml(match.category).replace(/_/g, \u0027 \u0027);\n\n    const warning = match.warning\n      ? `\n        \u003cp style=\"color:#b45309;\"\u003e\n          \u003cstrong\u003eWarning:\u003c/strong\u003e\n          ${escapeHtml(match.warning)}\n        \u003c/p\u003e\n      `\n      : \u0027\u0027;\n\n    return `\n      \u003cdiv style=\"\n        border:1px solid #d1d5db;\n        border-radius:10px;\n        padding:18px;\n        margin:16px 0;\n        background:#ffffff;\n      \"\u003e\n        \u003ch3 style=\"margin-top:0;\"\u003e\n          #${escapeHtml(match.rank)} —\n          ${escapeHtml(match.original_clip_name)}\n        \u003c/h3\u003e\n\n        \u003cp\u003e\n          \u003cstrong\u003eProxy:\u003c/strong\u003e\n          ${escapeHtml(match.proxy_clip_name)}\n        \u003c/p\u003e\n\n        \u003cp\u003e\n          \u003cstrong\u003eCategory:\u003c/strong\u003e\n          ${category}\n        \u003c/p\u003e\n\n        \u003cp\u003e\n          \u003cstrong\u003eRelevance:\u003c/strong\u003e\n          ${escapeHtml(match.relevance_score)}%\n        \u003c/p\u003e\n\n        \u003cp\u003e\n          \u003cstrong\u003eTimecode:\u003c/strong\u003e\n          ${escapeHtml(match.matching_timecode || \u0027Not available\u0027)}\n        \u003c/p\u003e\n\n        \u003cp\u003e\n          \u003cstrong\u003eWhy it matched:\u003c/strong\u003e\n          ${escapeHtml(match.match_reason)}\n        \u003c/p\u003e\n\n        ${warning}\n      \u003c/div\u003e\n    `;\n  }).join(\u0027\u0027);\n\n  resultHtml = `\n    \u003cdiv style=\"max-width:800px;margin:0 auto;font-family:Arial,sans-serif;\"\u003e\n      \u003ch2\u003eFootage Search Results\u003c/h2\u003e\n\n      \u003cp\u003e\n        \u003cstrong\u003eSearch:\u003c/strong\u003e\n        ${escapeHtml(results.search_query)}\n      \u003c/p\u003e\n\n      \u003cp\u003e\n        ${matches.length}\n        matching clip${matches.length === 1 ? \u0027\u0027 : \u0027s\u0027} found.\n      \u003c/p\u003e\n\n      ${matchCards}\n    \u003c/div\u003e\n  `;\n}\n\nreturn [\n  {\n    json: {\n      ...input,\n      result_html: resultHtml,\n    },\n  },\n];"
+                                     },
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1184,
+                                       0
+                                   ],
+                      "id":  "e1c71f3a-19b0-47d9-9436-0a785f265fd5",
+                      "name":  "Format Search Results"
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "completion",
+                                         "respondWith":  "showText",
+                                         "responseText":  "={{ $json.result_html }}"
+                                     },
+                      "type":  "n8n-nodes-base.form",
+                      "typeVersion":  2.5,
+                      "position":  [
+                                       1376,
+                                       0
+                                   ],
+                      "id":  "8ac79ad5-42ac-42a7-aa1e-22f00961b067",
+                      "name":  "Display Search Results"
+                  }
+              ],
+    "connections":  {
+                        "Search Form":  {
+                                            "main":  [
+                                                         [
+                                                             {
+                                                                 "node":  "Get row(s) in sheet",
+                                                                 "type":  "main",
+                                                                 "index":  0
+                                                             }
+                                                         ]
+                                                     ]
+                                        },
+                        "Get row(s) in sheet":  {
+                                                    "main":  [
+                                                                 [
+                                                                     {
+                                                                         "node":  "Build Search Catalog",
+                                                                         "type":  "main",
+                                                                         "index":  0
+                                                                     }
+                                                                 ]
+                                                             ]
+                                                },
+                        "Build Search Catalog":  {
+                                                     "main":  [
+                                                                  [
+                                                                      {
+                                                                          "node":  "Search Footage with AI",
+                                                                          "type":  "main",
+                                                                          "index":  0
+                                                                      }
+                                                                  ]
+                                                              ]
+                                                 },
+                        "Search Footage with AI":  {
+                                                       "main":  [
+                                                                    [
+                                                                        {
+                                                                            "node":  "Parse Search Results",
+                                                                            "type":  "main",
+                                                                            "index":  0
+                                                                        }
+                                                                    ]
+                                                                ]
+                                                   },
+                        "Parse Search Results":  {
+                                                     "main":  [
+                                                                  [
+                                                                      {
+                                                                          "node":  "Format Search Results",
+                                                                          "type":  "main",
+                                                                          "index":  0
+                                                                      }
+                                                                  ]
+                                                              ]
+                                                 },
+                        "Format Search Results":  {
+                                                      "main":  [
+                                                                   [
+                                                                       {
+                                                                           "node":  "Display Search Results",
+                                                                           "type":  "main",
+                                                                           "index":  0
+                                                                       }
+                                                                   ]
+                                                               ]
+                                                  }
+                    },
+    "settings":  {
+                     "executionOrder":  "v1",
+                     "binaryMode":  "separate",
+                     "availableInMCP":  false
+                 },
+    "tags":  [
+
+             ]
+}
+
+

@@ -1,0 +1,30 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+credentials/
+secrets/
+
+# n8n runtime data
+.n8n/
+n8n_data/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Temporary exports and logs
+*.log
+*.tmp
+*.bak
+
+# Source media and generated proxies are intentionally excluded
+media/
+proxies/
+*.mp4
+*.mov
+*.mxf
+*.avi
+
