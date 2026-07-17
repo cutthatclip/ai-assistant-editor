@@ -229,8 +229,6 @@ The sanitized workflows are inactive on import and contain no working credential
 
 I defined the product concept, professional problem, workflow design, project scope, routing logic, test cases, and product decisions based on my post-production experience. AI tools assisted heavily with implementation details, JavaScript, prompt drafting and refinement, debugging, workflow guidance, and documentation. I tested the system, challenged incorrect results, and made the final decisions about what the product should and should not claim.
 
-## Repository contents
-
 ## Repository Structure
 
 ```text
