@@ -231,32 +231,33 @@ I defined the product concept, professional problem, workflow design, project sc
 
 ## Repository contents
 
+## Repository Structure
+
 ```text
 ai-assistant-editor/
-â”œâ”€â”€ .gitignore
-â”œâ”€â”€ README.md
-â”œâ”€â”€ assets/
-â”‚   â””â”€â”€ screenshots/
-â”‚       â”œâ”€â”€ footage-logger-workflow.png
-â”‚       â”œâ”€â”€ footage-search-workflow.png
-â”‚       â”œâ”€â”€ human-review-queue.png
-â”‚       â”œâ”€â”€ structured-ai-output.png
-â”‚       â””â”€â”€ validation-error-log.png
-â”œâ”€â”€ docs/
-â”‚   â”œâ”€â”€ architecture.md
-â”‚   â”œâ”€â”€ data-contract.md
-â”‚   â”œâ”€â”€ sanitization-report.md
-â”‚   â”œâ”€â”€ setup.md
-â”‚   â””â”€â”€ testing-and-quality-control.md
-â”œâ”€â”€ prompts/
-â”‚   â”œâ”€â”€ footage-analysis-prompt.md
-â”‚   â””â”€â”€ search-ranking-prompt.md
-â””â”€â”€ workflows/
-    â”œâ”€â”€ ai-footage-logger.sanitized.json
-    â”œâ”€â”€ footage-search-assistant.sanitized.json
-    â””â”€â”€ testing/
-        â””â”€â”€ ai-footage-logger-qc-test.sanitized.json
-```
+|-- .gitignore
+|-- README.md
+|-- assets/
+|   `-- screenshots/
+|       |-- footage-logger-workflow.png
+|       |-- footage-search-workflow.png
+|       |-- human-review-queue.png
+|       |-- structured-ai-output.png
+|       `-- validation-error-log.png
+|-- docs/
+|   |-- architecture.md
+|   |-- data-contract.md
+|   |-- sanitization-report.md
+|   |-- setup.md
+|   `-- testing-and-quality-control.md
+|-- prompts/
+|   |-- footage-analysis-prompt.md
+|   `-- search-ranking-prompt.md
+`-- workflows/
+    |-- ai-footage-logger.sanitized.json
+    |-- footage-search-assistant.sanitized.json
+    `-- testing/
+        `-- ai-footage-logger-qc-test.sanitized.json
 
 ## Security and privacy
 
